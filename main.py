@@ -11,10 +11,10 @@ def reading_files(filename):
         if line.__contains__('crim'):
             continue
         values = [value.strip('"') for value in line.strip().split(',')]
-        list2.append(values.pop())
+        list2.append(float(values.pop()) / 100000)
         list1.append(values)
     data = np.array(list1, dtype=float)
-    label = np.array(list2)
+    label = np.array(list2, dtype=float)
     return data, label
 
 
@@ -28,7 +28,7 @@ def distance(point1, point2):
 def gaussian_kernel(x, kernels, s):
     gaussian = []
     for i in kernels:
-        gaussian.append(math.exp((-1 * distance(x, i) ** 2) / 2 * s ** 2))
+        gaussian.append(math.exp(-1 * (distance(x, i) ** 2)) / (2 * (s ** 2)))
     return gaussian
 
 
@@ -44,15 +44,37 @@ def max_distance(x):
     return max
 
 
-def train_RBF(x, y, cluster=20, Sigma=4):
+def feed_forward(x, w, c, s):
+    gaussian = []
+    answer = []
+    for i in range(len(x)):
+        g = gaussian_kernel(x[i], c, s)
+        gaussian.append(g)
+        answer.append(np.dot(g, w))
+    return np.array(gaussian), answer
+
+
+def back_propagate(x, y, label, w, lr):
+    error = label - y
+    for i in range(len(x)):
+        w += lr * error[i] * x[i]
+
+
+def train_RBF(x, y, cluster_num=20, epoch=2000, learning_rate=0.01):
     kmeans = KMeans(n_clusters=20, random_state=0, n_init="auto").fit(x)
     centers = kmeans.cluster_centers_
-    # print(centers[0])
-    # print(centers[17])
     sigma = max_distance(centers)[0] / math.sqrt(2 * len(centers))
-    # print(sigma)
-    print(np.max(gaussian_kernel(x[0], centers, sigma)))
-    print(gaussian_kernel(x[0], centers, sigma))
+    wi = np.random.rand(cluster_num)
+    # print(wi)
+
+    for i in range(epoch):
+        gus, ans = feed_forward(x, wi, centers, sigma)
+        # print(len(gus[0]))
+        # print(gus[0])
+        print(ans)
+        back_propagate(gus, ans, y, wi, learning_rate)
+
+        # print(max(gaussian))
 
 
 if __name__ == '__main__':
@@ -62,3 +84,4 @@ if __name__ == '__main__':
     #     print(data[i], label[i])
 
     train_RBF(data, label)
+
